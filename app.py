@@ -40,18 +40,28 @@ st.markdown("""
         border: 1px solid rgba(128, 128, 128, 0.2);
     }
 
-    /* [사이드바 안의 카드 박스 스타일] */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
-        gap: 0.5rem; /* 박스 사이 간격 */
+    /* [사이드바 리스트 스타일 개선] */
+    /* 박스(컨테이너)의 패딩을 줄여서 높이를 낮춤 */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] [data-testid="stContainer"] {
+        padding: 0.5rem 0.2rem !important;
+        gap: 0 !important;
     }
     
-    /* 사이드바 버튼 스타일 (투명하게, 글씨는 깔끔하게) */
+    /* 사이드바 컬럼 간격 없애기 */
+    [data-testid="stSidebar"] [data-testid="stContainer"] [data-testid="column"] {
+        padding: 0 !important;
+    }
+    
+    /* 사이드바 버튼 스타일 (높이 줄이고, 내용 중앙 정렬) */
     [data-testid="stSidebar"] .stButton button {
         background-color: transparent !important;
         border: none !important;
         color: inherit !important;
         padding: 0px !important;
-        height: auto !important;
+        height: 2.5rem !important; /* 버튼 높이를 컴팩트하게 고정 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     /* 사이드바 제목 말줄임표 (...) 처리 */
@@ -59,25 +69,27 @@ st.markdown("""
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 160px; /* 제목 길이 제한 */
+        max-width: 160px;
         font-weight: normal;
         font-size: 14px;
         text-align: left;
+        margin-bottom: 0px; /* 하단 여백 제거 */
     }
 
     /* 삭제(X) 버튼 빨간색 강조 */
     .delete-btn button {
         color: #ff7675 !important;
         font-weight: bold !important;
+        font-size: 1.2rem !important; /* X 표시 살짝 키움 */
     }
 
-    /* 복사(clipboard) 버튼 파란색 강조 */
-    .copy-btn button {
+    /* 복사 버튼 아이콘 스타일 */
+    .copy-btn button span {
+        font-size: 1.2rem !important; /* 아이콘 크기 조절 */
         color: #74b9ff !important;
     }
 
     /* [저장 버튼 중앙 정렬] */
-    /* 버튼을 감싸는 컨테이너를 강제로 중앙으로 보냄 */
     .save-button-container {
         display: flex;
         justify-content: center;
@@ -86,12 +98,8 @@ st.markdown("""
         margin-top: 20px;
     }
     
-    .save-button-container .stButton {
-        width: auto !important;
-    }
-    
     .save-button-container .stButton > button {
-        width: 300px !important; /* 버튼 고정 너비 */
+        width: 300px !important;
         border-radius: 50px;
         font-weight: bold;
         padding: 10px 20px;
@@ -117,30 +125,33 @@ with st.sidebar:
 
     # 리스트 출력
     for i, item in enumerate(st.session_state.history):
-        # 하나의 박스(Container) 안에 3개의 컬럼을 넣음
         with st.container(border=True):
             # [삭제 X] - [제목 (불러오기)] - [복사] 비율 설정
-            c_del, c_load, c_copy = st.columns([0.15, 0.7, 0.15])
+            col1, col2, col3 = st.columns([0.15, 0.7, 0.15])
             
             # 1. 삭제 버튼 (좌측)
-            with c_del:
+            with col1:
                 st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
-                if st.button("✕", key=f"del_{i}", help="삭제"):
+                # X 문자 대신 Material Icon 사용 (더 깔끔함)
+                if st.button(":material/close:", key=f"del_{i}", help="삭제"):
                     del st.session_state.history[i]
                     save_data(st.session_state.history)
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
             # 2. 제목 버튼 (가운데, 클릭 시 로드)
-            with c_load:
+            with col2:
+                # 버튼이 왼쪽 정렬되도록 스타일 추가
+                st.markdown("""<style>div[data-testid="stVerticalBlock"] > div:nth-child(2) .stButton button { justify-content: flex-start !important; }</style>""", unsafe_allow_html=True)
                 if st.button(f"{item['title']}", key=f"load_{i}"):
                     st.session_state.current_data = item
                     st.rerun()
             
-            # 3. 복사 버튼 (우측)
-            with c_copy:
+            # 3. 복사 버튼 (우측, 아이콘 변경!)
+            with col3:
                 st.markdown('<div class="copy-btn">', unsafe_allow_html=True)
-                if st.button("📋", key=f"copy_{i}", help="복사해서 새 주간 만들기"):
+                # [변경] 이모지 📋 대신 표준 아이콘 사용
+                if st.button(":material/content_copy:", key=f"copy_{i}", help="복사해서 새 주간 만들기"):
                     new_item = item.copy()
                     new_item['id'] = str(datetime.datetime.now().timestamp())
                     new_item['title'] = f"{datetime.date.today().month}월 {datetime.date.today().day}일 시작 (복사됨)"
@@ -226,7 +237,6 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
 st.divider()
 
 # [저장 버튼 완벽 중앙 정렬]
-# 컨테이너 div를 만들어서 그 안에 버튼을 넣는 방식
 st.markdown('<div class="save-button-container">', unsafe_allow_html=True)
 
 if st.button("💾 저장하기", type="primary"):
