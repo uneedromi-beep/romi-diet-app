@@ -1,6 +1,7 @@
 import streamlit as st
 import datetime
 import json
+import os
 import time
 import gspread
 from google.oauth2.service_account import Credentials
@@ -8,45 +9,60 @@ from google.oauth2.service_account import Credentials
 # --- 1. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="로미의 다이어트 매니저", page_icon="📅")
 
-# --- 2. 구글 시트 연결 함수 (Secrets 사용) ---
-# 이 함수는 캐시를 사용해서 매번 로그인하지 않게 함
+# --- 2. 구글 시트 연결 함수 (안전장치 추가) ---
 @st.cache_resource
 def get_google_sheet():
-    # Streamlit Secrets에서 열쇠 정보 가져오기
-    key_dict = st.secrets["service_account"]
-    
-    # 구글 인증 범위 설정
+    # Secrets에서 정보 가져오기
+    # [주의] Streamlit Secrets에 [service_account] 헤더가 있어야 함
+    try:
+        key_dict = st.secrets["service_account"]
+    except Exception:
+        st.error("🚨 Streamlit Secrets 설정이 잘못되었습니다. [service_account] 헤더를 확인해주세요.")
+        return None
+
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
     client = gspread.authorize(creds)
     
-    # 시트 열기 (시트 이름이 'diet_db'인지 꼭 확인!)
-    sh = client.open("diet_db")
-    return sh.sheet1
-
-# --- 3. 데이터 불러오기/저장하기 (구글 시트용) ---
-def load_data():
+    # 시트 열기 (이름: diet_db)
     try:
-        sheet = get_google_sheet()
-        # 시트의 모든 데이터를 가져옴 (A열에 JSON 문자열로 저장할 예정)
-        raw_data = sheet.col_values(1) # 1번째 컬럼(A열) 데이터 읽기
+        sh = client.open("diet_db")
+        return sh.sheet1
+    except Exception as e:
+        st.error(f"🚨 구글 시트를 찾을 수 없습니다. 시트 이름이 'diet_db'인지, 봇 이메일이 초대되었는지 확인해주세요. (에러: {e})")
+        return None
+
+# --- 3. 데이터 함수 (에러 해결 핵심!) ---
+def load_data():
+    sheet = get_google_sheet()
+    if sheet is None: return [] # 연결 실패시 빈 리스트 반환
+
+    try:
+        # A열의 모든 데이터를 가져옴
+        raw_data = sheet.col_values(1)
         
         history = []
         for item in raw_data:
             if item.strip(): # 빈 줄이 아니면
-                history.append(json.loads(item)) # JSON 문자열을 딕셔너리로 변환
+                try:
+                    history.append(json.loads(item))
+                except json.JSONDecodeError:
+                    continue # JSON 형식이 아니면 건너뜀
         return history
+
     except Exception as e:
-        st.error(f"데이터 불러오기 실패: {e}")
+        # 시트가 완전히 비어있거나 문제가 생겨도 앱이 죽지 않게 함
+        # st.warning(f"데이터 불러오기 중 알림: {e}") # 디버깅용 (필요시 주석 해제)
         return []
 
 def save_data(data):
+    sheet = get_google_sheet()
+    if sheet is None: return
+
     try:
-        sheet = get_google_sheet()
-        sheet.clear() # 기존 데이터 싹 지우고
+        sheet.clear() # 기존 데이터 삭제
         
-        # 데이터를 JSON 문자열 리스트로 변환 (한 줄에 하나씩)
-        # gspread는 2차원 리스트([[행1], [행2]])를 원함
+        # 데이터를 JSON 문자열 리스트로 변환
         rows = [[json.dumps(item, ensure_ascii=False)] for item in data]
         
         if rows:
@@ -54,7 +70,7 @@ def save_data(data):
     except Exception as e:
         st.error(f"데이터 저장 실패: {e}")
 
-# 초기 데이터 로드 (세션 상태에 없으면 구글 시트에서 가져옴)
+# 초기 데이터 로드
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
@@ -96,7 +112,7 @@ with st.sidebar:
                 st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
                 if st.button(":material/close:", key=f"del_{i}", help="삭제"):
                     del st.session_state.history[i]
-                    save_data(st.session_state.history) # 구글 시트에 저장
+                    save_data(st.session_state.history) 
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
             with col2:
@@ -114,7 +130,7 @@ with st.sidebar:
                         new_item['content'][day]['weight'] = ""
                         new_item['content'][day]['eval'] = None
                     st.session_state.history.insert(0, new_item)
-                    save_data(st.session_state.history) # 구글 시트에 저장
+                    save_data(st.session_state.history) 
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
