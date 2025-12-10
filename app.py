@@ -2,11 +2,12 @@ import streamlit as st
 import datetime
 import json
 import os
+import time  # <--- [중요] 아까 이 친구가 빠져서 에러가 났던 거야!
 
 # --- 1. 기본 설정 (페이지 제목, 디자인) ---
 st.set_page_config(layout="wide", page_title="로미의 다이어트 매니저", page_icon="📅")
 
-# 파일 저장소 이름 (여기에 데이터가 저장됨)
+# 파일 저장소 이름
 DB_FILE = "romi_data.json"
 
 # --- 2. 데이터 불러오기/저장하기 함수 ---
@@ -30,7 +31,7 @@ with st.sidebar:
     
     # 새 주간 시작 버튼
     if st.button("➕ 새 주간 시작하기", use_container_width=True):
-        st.session_state.current_data = None # 현재 화면 초기화
+        st.session_state.current_data = None 
         st.rerun()
 
     st.divider()
@@ -49,7 +50,6 @@ with st.sidebar:
             new_item = item.copy()
             new_item['id'] = str(datetime.datetime.now().timestamp())
             new_item['title'] = f"{datetime.date.today().month}월 {datetime.date.today().day}일 시작 (복사됨)"
-            # 몸무게랑 평가는 초기화
             for day in new_item['content']:
                 new_item['content'][day]['weight'] = ""
                 new_item['content'][day]['eval'] = None
@@ -66,7 +66,6 @@ with st.sidebar:
 
 # --- 4. 메인 화면 ---
 
-# 현재 보여줄 데이터가 없으면 '새 데이터' 템플릿 생성
 if "current_data" not in st.session_state or st.session_state.current_data is None:
     today_str = f"{datetime.date.today().month}월 {datetime.date.today().day}일 시작 주간"
     st.session_state.current_data = {
@@ -83,7 +82,6 @@ days_info = [
     ("Thu", "목요일", "🥩"), ("Fri", "금요일", "🍷"), ("Sat", "토요일", "🛍️"), ("Sun", "일요일", "🛁")
 ]
 
-# 제목과 목표 입력
 st.title("🏃‍♀️ 로미의 유지어터 매니저")
 new_title = st.text_input("날짜/제목", value=data['title'])
 data['title'] = new_title
@@ -91,19 +89,38 @@ data['goal'] = st.text_input("이번 주 목표", value=data['goal'], placeholde
 
 st.divider()
 
-# 요일별 카드 생성 (CSS 스타일 적용)
+# --- CSS 스타일 (다크모드 대응 + 버튼 중앙 정렬) ---
 st.markdown("""
 <style>
+    /* 카드 스타일 (다크모드 자동 대응) */
     div[data-testid="stColumn"] {
-        background-color: var(--secondary-background-color); /* <-- 변경! */
+        background-color: var(--secondary-background-color);
         padding: 15px;
         border-radius: 10px;
-        border: 1px solid rgba(128, 128, 128, 0.2); /* <-- 테두리도 은은하게 */
+        border: 1px solid rgba(128, 128, 128, 0.2);
+    }
+    .stTextInput input {
+        background-color: transparent !important;
+    }
+    
+    /* [버튼 중앙 정렬 핵심 코드] */
+    /* 버튼을 감싸는 부모 요소를 flexbox로 만들어서 가운데로 모음 */
+    div.stButton {
+        display: flex;
+        justify-content: center;
+    }
+    
+    /* 버튼 자체의 크기 설정 (너무 꽉 차지 않게) */
+    div.stButton > button {
+        width: 60% !important;  /* 버튼 너비 60% */
+        min-width: 300px;       /* 최소 너비 확보 */
+        font-weight: bold;
+        border-radius: 20px;    /* 둥글게 */
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 4개, 3개로 나누어 보여주기
+# 요일별 카드 배치
 cols = st.columns(4)
 for idx, (day_code, label, icon) in enumerate(days_info[:4]):
     day_data = data['content'][day_code]
@@ -118,7 +135,7 @@ for idx, (day_code, label, icon) in enumerate(days_info[:4]):
                                   index=["😍", "🙂", "😅"].index(day_data['eval']) if day_data['eval'] else 0,
                                   key=f"e_{day_code}")
 
-st.write("") # 여백
+st.write("") 
 
 cols_bottom = st.columns(3)
 for idx, (day_code, label, icon) in enumerate(days_info[4:]):
@@ -136,25 +153,8 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
 
 st.divider()
 
-# 저장 버튼 스타일 (가운데 정렬 & 너비 조절)
-st.markdown("""
-<style>
-    /* 버튼을 감싸는 컨테이너를 가운데 정렬 */
-    .stButton {
-        display: flex;
-        justify-content: center;
-    }
-    /* 버튼 자체의 너비를 너무 넓지 않게 설정 (선택 사항) */
-    .stButton > button {
-        width: 50% !important; /* 너비를 50%로 설정 (원하는 만큼 조절 가능) */
-        min-width: 300px; /* 너무 작아지지 않게 최소 너비 설정 */
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# 저장 버튼 (빈 컬럼 없이 바로 배치)
+# 저장 버튼 (이제 빈 박스 없이 CSS로 자동 중앙 정렬됨!)
 if st.button("💾 이 내용을 저장하기", type="primary"):
-    # 리스트에 이미 있는 ID면 업데이트, 없으면 추가
     existing_ids = [item['id'] for item in st.session_state.history]
     
     if data['id'] in existing_ids:
@@ -163,7 +163,7 @@ if st.button("💾 이 내용을 저장하기", type="primary"):
     else:
         st.session_state.history.insert(0, data)
     
-    save_data(st.session_state.history) # 파일에 저장
+    save_data(st.session_state.history)
     st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
-    time.sleep(1) # 1초 기다렸다가
-    st.rerun() # 새로고침
+    time.sleep(1) # 이제 import time이 있어서 에러 안 남!
+    st.rerun()
