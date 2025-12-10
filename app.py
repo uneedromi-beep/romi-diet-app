@@ -95,10 +95,10 @@ st.divider()
 st.markdown("""
 <style>
     div[data-testid="stColumn"] {
-        background-color: #f9f9f9;
+        background-color: var(--secondary-background-color); /* <-- 변경! */
         padding: 15px;
         border-radius: 10px;
-        border: 1px solid #ddd;
+        border: 1px solid rgba(128, 128, 128, 0.2); /* <-- 테두리도 은은하게 */
     }
 </style>
 """, unsafe_allow_html=True)
@@ -150,4 +150,5 @@ if col_c.button("💾 이 내용을 저장하기", type="primary", use_container
     
     save_data(st.session_state.history) # 파일에 저장
     st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
+
     st.rerun()
