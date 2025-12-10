@@ -136,9 +136,24 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
 
 st.divider()
 
-# 저장 버튼 (가운데 정렬)
-col_l, col_c, col_r = st.columns([1, 1, 1])
-if col_c.button("💾 이 내용을 저장하기", type="primary", use_container_width=True):
+# 저장 버튼 스타일 (가운데 정렬 & 너비 조절)
+st.markdown("""
+<style>
+    /* 버튼을 감싸는 컨테이너를 가운데 정렬 */
+    .stButton {
+        display: flex;
+        justify-content: center;
+    }
+    /* 버튼 자체의 너비를 너무 넓지 않게 설정 (선택 사항) */
+    .stButton > button {
+        width: 50% !important; /* 너비를 50%로 설정 (원하는 만큼 조절 가능) */
+        min-width: 300px; /* 너무 작아지지 않게 최소 너비 설정 */
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 저장 버튼 (빈 컬럼 없이 바로 배치)
+if st.button("💾 이 내용을 저장하기", type="primary"):
     # 리스트에 이미 있는 ID면 업데이트, 없으면 추가
     existing_ids = [item['id'] for item in st.session_state.history]
     
@@ -150,5 +165,5 @@ if col_c.button("💾 이 내용을 저장하기", type="primary", use_container
     
     save_data(st.session_state.history) # 파일에 저장
     st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
-
-    st.rerun()
+    time.sleep(1) # 1초 기다렸다가
+    st.rerun() # 새로고침
