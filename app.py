@@ -23,10 +23,16 @@ def save_data(data):
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
-# --- 3. CSS 스타일 (여기가 디자인의 핵심!) ---
+# --- 3. CSS 스타일 (디자인의 핵심!) ---
 st.markdown("""
 <style>
-    /* [메인 카드 디자인] 사이드바가 아닌 '메인 화면'의 컬럼만 카드처럼 꾸미기 */
+    /* [사이드바 너비 고정] */
+    section[data-testid="stSidebar"] {
+        min-width: 350px !important;
+        max-width: 350px !important;
+    }
+
+    /* [메인 카드 디자인] */
     section[data-testid="stMain"] div[data-testid="stColumn"] {
         background-color: var(--secondary-background-color);
         padding: 15px;
@@ -34,41 +40,64 @@ st.markdown("""
         border: 1px solid rgba(128, 128, 128, 0.2);
     }
 
-    /* [사이드바 초기화] 사이드바 안의 컬럼은 배경/테두리 없애기 (겹침 해결!) */
-    section[data-testid="stSidebar"] div[data-testid="stColumn"] {
+    /* [사이드바 안의 카드 박스 스타일] */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+        gap: 0.5rem; /* 박스 사이 간격 */
+    }
+    
+    /* 사이드바 버튼 스타일 (투명하게, 글씨는 깔끔하게) */
+    [data-testid="stSidebar"] .stButton button {
         background-color: transparent !important;
         border: none !important;
-        padding: 0 !important;
+        color: inherit !important;
+        padding: 0px !important;
+        height: auto !important;
     }
-
-    /* [사이드바 말줄임표] 버튼 안의 텍스트가 길면 ... 으로 자르기 */
-    section[data-testid="stSidebar"] .stButton button div p {
+    
+    /* 사이드바 제목 말줄임표 (...) 처리 */
+    [data-testid="stSidebar"] .stButton button p {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 150px;  /* 이 너비 넘어가면 ... 처리 */
+        max-width: 160px; /* 제목 길이 제한 */
+        font-weight: normal;
+        font-size: 14px;
+        text-align: left;
     }
 
-    /* [평가 버튼 디자인] 라디오 버튼 대신 깔끔한 칩(Chip) 스타일 */
-    .stSegmentedControl {
-        border: none !important;
+    /* 삭제(X) 버튼 빨간색 강조 */
+    .delete-btn button {
+        color: #ff7675 !important;
+        font-weight: bold !important;
     }
-    
-    /* [저장 버튼 중앙 정렬] 메인 화면의 버튼만 가운데로! */
-    section[data-testid="stMain"] .stButton {
+
+    /* 복사(clipboard) 버튼 파란색 강조 */
+    .copy-btn button {
+        color: #74b9ff !important;
+    }
+
+    /* [저장 버튼 중앙 정렬] */
+    /* 버튼을 감싸는 컨테이너를 강제로 중앙으로 보냄 */
+    .save-button-container {
         display: flex;
         justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin-top: 20px;
     }
     
-    /* 저장 버튼 크기 및 스타일 */
-    section[data-testid="stMain"] .stButton > button {
-        width: 50%;
-        min-width: 200px;
-        border-radius: 20px;
+    .save-button-container .stButton {
+        width: auto !important;
+    }
+    
+    .save-button-container .stButton > button {
+        width: 300px !important; /* 버튼 고정 너비 */
+        border-radius: 50px;
         font-weight: bold;
+        padding: 10px 20px;
     }
 
-    /* 입력창 투명하게 */
+    /* 입력창 배경 투명 */
     .stTextInput input {
         background-color: transparent !important;
     }
@@ -80,40 +109,49 @@ st.markdown("""
 with st.sidebar:
     st.title("📅 Romi's History")
     
-    if st.button("➕ 새 주간 시작하기", use_container_width=True):
+    if st.button("➕ 새 주간 시작하기", use_container_width=True, type="primary"):
         st.session_state.current_data = None 
         st.rerun()
 
-    st.divider()
-    
+    st.write("") # 여백
+
     # 리스트 출력
     for i, item in enumerate(st.session_state.history):
-        # gap="small"로 간격 좁힘
-        col1, col2, col3 = st.columns([0.65, 0.2, 0.15], gap="small")
-        
-        # 제목 버튼 (길면 ... 처리됨)
-        if col1.button(f"{item['title']}", key=f"load_{i}", use_container_width=True, help=item['title']):
-            st.session_state.current_data = item
-            st.rerun()
+        # 하나의 박스(Container) 안에 3개의 컬럼을 넣음
+        with st.container(border=True):
+            # [삭제 X] - [제목 (불러오기)] - [복사] 비율 설정
+            c_del, c_load, c_copy = st.columns([0.15, 0.7, 0.15])
             
-        # 복사 버튼 (아이콘만 깔끔하게)
-        if col2.button("📋", key=f"copy_{i}", use_container_width=True, help="복사하기"):
-            new_item = item.copy()
-            new_item['id'] = str(datetime.datetime.now().timestamp())
-            new_item['title'] = f"{datetime.date.today().month}월 {datetime.date.today().day}일 시작 (복사됨)"
-            for day in new_item['content']:
-                new_item['content'][day]['weight'] = ""
-                new_item['content'][day]['eval'] = None
-            
-            st.session_state.history.insert(0, new_item)
-            save_data(st.session_state.history)
-            st.rerun()
+            # 1. 삭제 버튼 (좌측)
+            with c_del:
+                st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
+                if st.button("✕", key=f"del_{i}", help="삭제"):
+                    del st.session_state.history[i]
+                    save_data(st.session_state.history)
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        # 삭제 버튼
-        if col3.button("❌", key=f"del_{i}", use_container_width=True, help="삭제하기"):
-            del st.session_state.history[i]
-            save_data(st.session_state.history)
-            st.rerun()
+            # 2. 제목 버튼 (가운데, 클릭 시 로드)
+            with c_load:
+                if st.button(f"{item['title']}", key=f"load_{i}"):
+                    st.session_state.current_data = item
+                    st.rerun()
+            
+            # 3. 복사 버튼 (우측)
+            with c_copy:
+                st.markdown('<div class="copy-btn">', unsafe_allow_html=True)
+                if st.button("📋", key=f"copy_{i}", help="복사해서 새 주간 만들기"):
+                    new_item = item.copy()
+                    new_item['id'] = str(datetime.datetime.now().timestamp())
+                    new_item['title'] = f"{datetime.date.today().month}월 {datetime.date.today().day}일 시작 (복사됨)"
+                    for day in new_item['content']:
+                        new_item['content'][day]['weight'] = ""
+                        new_item['content'][day]['eval'] = None
+                    st.session_state.history.insert(0, new_item)
+                    save_data(st.session_state.history)
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
 
 # --- 5. 메인 화면 ---
 
@@ -152,8 +190,6 @@ for idx, (day_code, label, icon) in enumerate(days_info[:4]):
         day_data['sn'] = st.text_input("간식", value=day_data['sn'], key=f"s_{day_code}")
         day_data['dn'] = st.text_input("저녁", value=day_data['dn'], key=f"d_{day_code}")
         
-        # [수정] 라디오 버튼 대신 'Segmented Control' (아이콘 버튼) 사용
-        # 이게 바로 HTML처럼 누르면 선택되는 버튼이야!
         eval_val = day_data['eval']
         day_data['eval'] = st.segmented_control(
             "평가", 
@@ -161,7 +197,7 @@ for idx, (day_code, label, icon) in enumerate(days_info[:4]):
             selection_mode="single",
             default=eval_val if eval_val in ["😍", "🙂", "😅"] else None,
             key=f"e_{day_code}",
-            label_visibility="collapsed" # 라벨(글씨) 숨김
+            label_visibility="collapsed"
         )
 
 st.write("") 
@@ -189,7 +225,10 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
 
 st.divider()
 
-# 저장 버튼 (이름 변경 + 중앙 정렬)
+# [저장 버튼 완벽 중앙 정렬]
+# 컨테이너 div를 만들어서 그 안에 버튼을 넣는 방식
+st.markdown('<div class="save-button-container">', unsafe_allow_html=True)
+
 if st.button("💾 저장하기", type="primary"):
     existing_ids = [item['id'] for item in st.session_state.history]
     
@@ -203,3 +242,5 @@ if st.button("💾 저장하기", type="primary"):
     st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
     time.sleep(1) 
     st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
