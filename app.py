@@ -9,12 +9,11 @@ from google.oauth2.service_account import Credentials
 # --- 1. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="로미의 다이어트 매니저", page_icon="📅")
 
-# --- 2. 구글 시트 연결 함수 (안전장치 추가) ---
+# --- 2. 구글 시트 연결 함수 ---
 @st.cache_resource
 def get_google_sheet():
-    # Secrets에서 정보 가져오기
-    # [주의] Streamlit Secrets에 [service_account] 헤더가 있어야 함
     try:
+        # Secrets에서 정보 가져오기
         key_dict = st.secrets["service_account"]
     except Exception:
         st.error("🚨 Streamlit Secrets 설정이 잘못되었습니다. [service_account] 헤더를 확인해주세요.")
@@ -24,35 +23,29 @@ def get_google_sheet():
     creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
     client = gspread.authorize(creds)
     
-    # 시트 열기 (이름: diet_db)
     try:
         sh = client.open("diet_db")
         return sh.sheet1
     except Exception as e:
-        st.error(f"🚨 구글 시트를 찾을 수 없습니다. 시트 이름이 'diet_db'인지, 봇 이메일이 초대되었는지 확인해주세요. (에러: {e})")
+        st.error(f"🚨 구글 시트 연결 실패. (에러내용: {e})")
         return None
 
-# --- 3. 데이터 함수 (에러 해결 핵심!) ---
+# --- 3. 데이터 함수 ---
 def load_data():
     sheet = get_google_sheet()
-    if sheet is None: return [] # 연결 실패시 빈 리스트 반환
+    if sheet is None: return []
 
     try:
-        # A열의 모든 데이터를 가져옴
         raw_data = sheet.col_values(1)
-        
         history = []
         for item in raw_data:
-            if item.strip(): # 빈 줄이 아니면
+            if item.strip():
                 try:
                     history.append(json.loads(item))
                 except json.JSONDecodeError:
-                    continue # JSON 형식이 아니면 건너뜀
+                    continue
         return history
-
     except Exception as e:
-        # 시트가 완전히 비어있거나 문제가 생겨도 앱이 죽지 않게 함
-        # st.warning(f"데이터 불러오기 중 알림: {e}") # 디버깅용 (필요시 주석 해제)
         return []
 
 def save_data(data):
@@ -60,13 +53,10 @@ def save_data(data):
     if sheet is None: return
 
     try:
-        sheet.clear() # 기존 데이터 삭제
-        
-        # 데이터를 JSON 문자열 리스트로 변환
+        sheet.clear()
         rows = [[json.dumps(item, ensure_ascii=False)] for item in data]
-        
         if rows:
-            sheet.update(range_name='A1', values=rows)
+            sheet.update('A1', rows) # gspread 5.10.0 방식
     except Exception as e:
         st.error(f"데이터 저장 실패: {e}")
 
@@ -74,27 +64,41 @@ def save_data(data):
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
-# --- 4. CSS 스타일 (디자인 유지) ---
+# --- 4. CSS 스타일 ---
 st.markdown("""
 <style>
     section[data-testid="stSidebar"] { min-width: 350px !important; max-width: 350px !important; }
+    
+    /* 메인 카드 스타일 */
     section[data-testid="stMain"] div[data-testid="stColumn"] {
         background-color: var(--secondary-background-color); padding: 15px; border-radius: 10px; border: 1px solid rgba(128, 128, 128, 0.2);
     }
+    
+    /* 사이드바 스타일 정리 */
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] [data-testid="stContainer"] { padding: 0.5rem 0.2rem !important; gap: 0 !important; }
     [data-testid="stSidebar"] [data-testid="stContainer"] [data-testid="column"] { padding: 0 !important; }
+    
+    /* 사이드바 버튼 */
     [data-testid="stSidebar"] .stButton button {
         background-color: transparent !important; border: none !important; color: inherit !important; padding: 0px !important; height: 2.5rem !important;
         display: flex; align-items: center; justify-content: center;
     }
+    
+    /* 사이드바 텍스트 */
     [data-testid="stSidebar"] .stButton button p {
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; font-weight: normal; font-size: 14px; text-align: left; margin-bottom: 0px;
     }
+    
     .delete-btn button { color: #ff7675 !important; font-weight: bold !important; font-size: 1.2rem !important; }
     .copy-btn button span { font-size: 1.2rem !important; color: #74b9ff !important; }
-    .save-button-container { display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 20px; }
-    .save-button-container .stButton > button { width: 300px !important; border-radius: 50px; font-weight: bold; padding: 10px 20px; }
+    
+    /* 입력창 투명 */
     .stTextInput input { background-color: transparent !important; }
+    
+    /* 저장 버튼 스타일 (크기만 지정) */
+    div[data-testid="stMain"] .stButton > button {
+        width: 100%; border-radius: 50px; font-weight: bold; padding: 10px 0px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,7 +116,7 @@ with st.sidebar:
                 st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
                 if st.button(":material/close:", key=f"del_{i}", help="삭제"):
                     del st.session_state.history[i]
-                    save_data(st.session_state.history) 
+                    save_data(st.session_state.history)
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
             with col2:
@@ -130,7 +134,7 @@ with st.sidebar:
                         new_item['content'][day]['weight'] = ""
                         new_item['content'][day]['eval'] = None
                     st.session_state.history.insert(0, new_item)
-                    save_data(st.session_state.history) 
+                    save_data(st.session_state.history)
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -176,17 +180,19 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
         day_data['eval'] = st.segmented_control("평가", ["😍", "🙂", "😅"], selection_mode="single", default=day_data['eval'] if day_data['eval'] in ["😍", "🙂", "😅"] else None, key=f"e_{day_code}", label_visibility="collapsed")
 st.divider()
 
-st.markdown('<div class="save-button-container">', unsafe_allow_html=True)
-if st.button("💾 저장하기", type="primary"):
-    existing_ids = [item['id'] for item in st.session_state.history]
-    if data['id'] in existing_ids:
-        index = existing_ids.index(data['id'])
-        st.session_state.history[index] = data
-    else:
-        st.session_state.history.insert(0, data)
-    
-    save_data(st.session_state.history) # 구글 시트에 저장
-    st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
-    time.sleep(1)
-    st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
+# [저장 버튼 수정] 화면을 3등분(1:2:1)해서 가운데 칸에 버튼을 넣음 -> 무조건 중앙 정렬됨
+_, col_btn, _ = st.columns([1, 2, 1]) 
+
+with col_btn:
+    if st.button("💾 저장하기", type="primary", use_container_width=True):
+        existing_ids = [item['id'] for item in st.session_state.history]
+        if data['id'] in existing_ids:
+            index = existing_ids.index(data['id'])
+            st.session_state.history[index] = data
+        else:
+            st.session_state.history.insert(0, data)
+        
+        save_data(st.session_state.history)
+        st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
+        time.sleep(1)
+        st.rerun()
