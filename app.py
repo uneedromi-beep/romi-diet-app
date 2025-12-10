@@ -38,10 +38,10 @@ with st.sidebar:
     
     # 저장된 기록 리스트 보여주기
     for i, item in enumerate(st.session_state.history):
-        col1, col2, col3 = st.columns([0.7, 0.15, 0.15])
+        col1, col2, col3 = st.columns([0.6, 0.2, 0.2], gap="small")
         
         # 날짜 클릭하면 불러오기
-        if col1.button(f"{item['title']}", key=f"load_{i}"):
+        if col1.button(f"{item['title']}", key=f"load_{i}", use_container_width=True):
             st.session_state.current_data = item
             st.rerun()
             
@@ -92,7 +92,7 @@ st.divider()
 # --- CSS 스타일 (다크모드 대응 + 버튼 중앙 정렬) ---
 st.markdown("""
 <style>
-    /* 카드 스타일 (다크모드 자동 대응) */
+    /* 1. 카드 스타일 (다크모드 자동 대응) */
     div[data-testid="stColumn"] {
         background-color: var(--secondary-background-color);
         padding: 15px;
@@ -103,19 +103,38 @@ st.markdown("""
         background-color: transparent !important;
     }
     
-    /* [버튼 중앙 정렬 핵심 코드] */
-    /* 버튼을 감싸는 부모 요소를 flexbox로 만들어서 가운데로 모음 */
+    /* 2. 저장 버튼 중앙 정렬 */
     div.stButton {
         display: flex;
         justify-content: center;
     }
-    
-    /* 버튼 자체의 크기 설정 (너무 꽉 차지 않게) */
     div.stButton > button {
-        width: 60% !important;  /* 버튼 너비 60% */
-        min-width: 300px;       /* 최소 너비 확보 */
+        width: 60% !important;
+        min-width: 300px;
         font-weight: bold;
-        border-radius: 20px;    /* 둥글게 */
+        border-radius: 20px;
+    }
+
+    /* 3. [NEW] 사이드바 스타일 정리 (여기가 핵심!) */
+    /* 사이드바 안의 버튼들 패딩 줄이기 */
+    [data-testid="stSidebar"] button {
+        padding: 0.3rem 0.5rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* 사이드바 안의 텍스트가 길면 ... 처리하기 */
+    [data-testid="stSidebar"] button p {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px; /* 이 너비보다 길면 ... 으로 변함 */
+        font-weight: normal !important;
+    }
+    
+    /* 사이드바 컬럼 간격 좁히기 */
+    [data-testid="stSidebar"] [data-testid="column"] {
+        padding: 0 !important;
+        gap: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -154,7 +173,7 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
 st.divider()
 
 # 저장 버튼 (이제 빈 박스 없이 CSS로 자동 중앙 정렬됨!)
-if st.button("💾 이 내용을 저장하기", type="primary"):
+if st.button("💾 저장하기", type="primary"):
     existing_ids = [item['id'] for item in st.session_state.history]
     
     if data['id'] in existing_ids:
@@ -167,3 +186,4 @@ if st.button("💾 이 내용을 저장하기", type="primary"):
     st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
     time.sleep(1) # 이제 import time이 있어서 에러 안 남!
     st.rerun()
+
