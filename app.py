@@ -71,7 +71,7 @@ def save_data(data):
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
-# --- 5. CSS 스타일 (디자인 수정) ---
+# --- 5. CSS 스타일 (디자인 전면 수정) ---
 st.markdown("""
 <style>
     :root { --primary-purple: #6c5ce7; }
@@ -79,55 +79,74 @@ st.markdown("""
     /* 사이드바 너비 고정 */
     section[data-testid="stSidebar"] { min-width: 350px !important; max-width: 350px !important; }
 
-    /* [수정] 새 주간 시작하기 버튼 - 확실한 테두리와 박스 형태 */
+    /* [새 주간 시작하기 버튼 - 강력한 스타일 적용] */
+    div.new-week-btn {
+        width: 100%;
+        padding: 5px;
+    }
     div.new-week-btn button {
         background-color: var(--primary-purple) !important;
         color: white !important;
-        border: 2px solid #4834d4 !important; /* 진한 보라색 테두리 추가 */
+        border: 1px solid var(--primary-purple) !important;
         border-radius: 12px !important;
-        padding: 15px 10px !important;
+        padding: 0.8rem 0 !important; /* 높이 확보 */
         font-size: 16px !important;
-        font-weight: bold !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important; /* 그림자 강화 */
-        transition: transform 0.1s;
-        width: 100%;
+        font-weight: 700 !important; /* 굵게 */
+        box-shadow: 0 4px 6px rgba(108, 92, 231, 0.3) !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
     div.new-week-btn button:hover {
-        transform: scale(1.02);
         background-color: #5b4cc4 !important;
-        border-color: white !important;
+        transform: translateY(-2px);
     }
-
-    /* [수정] 사이드바 타이틀 버튼 좌측 정렬 강제 */
-    .title-btn button {
-        text-align: left !important;
-        justify-content: flex-start !important; /* 좌측 정렬 핵심 */
-        font-weight: bold !important;
-        font-size: 15px !important;
-        color: #333 !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: block;
+    /* 버튼 내부 텍스트 강제 중앙 정렬 */
+    div.new-week-btn button p {
+        text-align: center !important;
         width: 100%;
-        padding-left: 0 !important;
     }
-    .title-btn button:hover { color: var(--primary-purple) !important; }
 
-    /* 일반 버튼 초기화 */
-    [data-testid="stSidebar"] .stButton:not(.new-week-btn button) button {
-        border: none !important;
+    /* [사이드바 카드 리스트 버튼] */
+    /* 타이틀 버튼 (투명하게, 왼쪽 정렬) */
+    .card-title-btn button {
         background: transparent !important;
+        border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        color: #333 !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+    }
+    .card-title-btn button:hover {
+        color: var(--primary-purple) !important;
+    }
+    
+    /* 더보기(...) 버튼 스타일 */
+    [data-testid="stPopover"] > button {
+        border: none !important;
+        background: transparent !important;
+        color: #b2bec3 !important;
+        padding: 0 !important;
+        width: 30px !important;
+    }
+    [data-testid="stPopover"] > button:hover {
+        color: var(--primary-purple) !important;
+        background-color: #f0eeff !important;
     }
 
-    /* 아이콘 버튼 스타일 */
-    .icon-action-btn button {
-        font-size: 18px !important; color: #b2bec3 !important; display: flex; align-items: center; justify-content: center; width: 30px !important; height: 30px !important;
+    /* 팝오버 내부 버튼들 (복사/삭제) */
+    div[data-testid="stPopoverBody"] button {
+        width: 100%;
+        border: none;
+        text-align: left;
+        justify-content: flex-start;
     }
-    .icon-action-btn button:hover { background-color: rgba(0,0,0,0.05) !important; border-radius: 50% !important; color: var(--primary-purple) !important; }
-    
+
     /* 메인 카드 스타일 */
     section[data-testid="stMain"] div[data-testid="stColumn"] {
         background-color: var(--secondary-background-color); padding: 15px; border-radius: 15px; border: 1px solid rgba(128, 128, 128, 0.1); box-shadow: 0 2px 5px rgba(0,0,0,0.02);
@@ -142,7 +161,6 @@ st.markdown("""
         background-color: var(--primary-purple) !important; color: white !important; font-size: 18px !important; font-weight: bold !important; padding: 12px 40px !important; border-radius: 50px !important; border: none !important; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3) !important;
     }
     
-    /* 입력창 투명 */
     .stTextInput input { background-color: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -152,14 +170,13 @@ with st.sidebar:
     st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 Romi's History</h2>", unsafe_allow_html=True)
     st.write("")
 
-    # [수정] 새 주간 시작하기 버튼
+    # [수정] 새 주간 시작하기 버튼 (완벽한 박스 형태)
     st.markdown('<div class="new-week-btn">', unsafe_allow_html=True)
-    if st.button("➕  새 주간 시작하기", key="new_week", use_container_width=True):
+    if st.button("➕ 새 주간 시작하기", key="new_week"):
         new_data = {
-            "id": str(datetime.datetime.now().timestamp()), # 고유 ID 생성
+            "id": str(datetime.datetime.now().timestamp()), 
             "title": get_weekly_title(),
             "goal": "",
-            # 내용 초기화
             "content": {day: {"weight": "", "bf": "", "lc": "", "sn": "", "dn": "", "eval": None} for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]}
         }
         st.session_state.history.insert(0, new_data)
@@ -176,60 +193,67 @@ with st.sidebar:
     for i, item in enumerate(st.session_state.history):
         is_active = (item['id'] == current_id)
         
+        # 카드 컨테이너 (Active 상태면 보라색 테두리)
         with st.container(border=True):
             if is_active:
-                st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { border-color: #6c5ce7 !important; background-color: #f0eeff !important; }</style>""", unsafe_allow_html=True)
+                st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { border: 2px solid #6c5ce7 !important; background-color: #f8f7ff !important; }</style>""", unsafe_allow_html=True)
             
-            c_text, c_copy, c_del = st.columns([0.7, 0.15, 0.15])
+            # [레이아웃 변경] 좌측(내용) : 우측(더보기) = 8.5 : 1.5
+            c_content, c_more = st.columns([0.85, 0.15])
             
-            with c_text:
-                st.markdown('<div class="title-btn">', unsafe_allow_html=True)
-                if st.button(item['title'], key=f"load_{i}", help="이 기록 불러오기"):
+            # 1. 좌측: 제목 버튼 (클릭 시 로드)
+            with c_content:
+                st.markdown('<div class="card-title-btn">', unsafe_allow_html=True)
+                # 제목 자체가 버튼 역할
+                if st.button(item['title'], key=f"load_{i}", help="클릭하여 불러오기"):
                     st.session_state.current_data = item
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
+                
+                # 목표는 버튼 밑에 캡션으로 표시
                 if item.get('goal'):
-                    st.caption(f"{item['goal'][:20]}..." if len(item['goal'])>20 else item['goal'])
+                    st.caption(f"{item['goal'][:25]}..." if len(item['goal'])>25 else item['goal'])
 
-            with c_copy:
-                st.markdown('<div class="icon-action-btn">', unsafe_allow_html=True)
-                if st.button("📋", key=f"copy_{i}", help="복사"):
-                    new_item = item.copy()
-                    new_item['id'] = str(datetime.datetime.now().timestamp())
-                    new_item['title'] = get_weekly_title() + " (복사됨)"
-                    for day in new_item['content']:
-                        new_item['content'][day]['weight'] = ""
-                        new_item['content'][day]['eval'] = None
-                    st.session_state.history.insert(0, new_item)
-                    save_data(st.session_state.history)
-                    st.session_state.current_data = new_item
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            with c_del:
-                st.markdown('<div class="icon-action-btn">', unsafe_allow_html=True)
-                if st.button("✕", key=f"del_{i}", help="삭제"):
-                    del st.session_state.history[i]
-                    if is_active:
-                        st.session_state.current_data = None
-                    save_data(st.session_state.history)
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+            # 2. 우측: 더보기(...) 팝오버 메뉴
+            with c_more:
+                # :material/more_vert: 는 세로 점 3개 아이콘입니다.
+                popover = st.popover(":material/more_vert:", help="더보기")
+                
+                # 팝오버 내부 메뉴
+                with popover:
+                    # 복사하기
+                    if st.button("📋 복사하기", key=f"copy_{i}"):
+                        new_item = item.copy()
+                        new_item['id'] = str(datetime.datetime.now().timestamp())
+                        new_item['title'] = get_weekly_title() + " (복사됨)"
+                        for day in new_item['content']:
+                            new_item['content'][day]['weight'] = ""
+                            new_item['content'][day]['eval'] = None
+                        st.session_state.history.insert(0, new_item)
+                        save_data(st.session_state.history)
+                        st.session_state.current_data = new_item
+                        st.rerun()
+                    
+                    # 삭제하기 (빨간색 강조)
+                    if st.button("🗑️ 삭제하기", key=f"del_{i}", type="primary"):
+                        del st.session_state.history[i]
+                        if is_active:
+                            st.session_state.current_data = None
+                        save_data(st.session_state.history)
+                        st.rerun()
 
 # --- 7. 메인 화면 ---
 if "current_data" not in st.session_state or st.session_state.current_data is None:
-    st.info("👈 왼쪽에서 '새 주간 시작하기'를 눌러 기록을 시작해보세요!")
+    st.info("👈 왼쪽 사이드바에서 '+ 새 주간 시작하기'를 눌러주세요!")
     st.stop()
 
 data = st.session_state.current_data
-# [중요] 키 값에 ID를 포함시켜서 데이터가 바뀌면 입력창도 강제로 새로고침(초기화)되게 함
 current_week_id = data['id'] 
 
 days_info = [("Mon", "월요일", "🐻"), ("Tue", "화요일", "🔥"), ("Wed", "수요일", "🥗"), ("Thu", "목요일", "🥩"), ("Fri", "금요일", "🍷"), ("Sat", "토요일", "🛍️"), ("Sun", "일요일", "🛁")]
 
 st.title("🏃‍♀️ 로미의 유지어터 매니저")
 
-# [수정] 타이틀 좌측 정렬 (st.subheader는 기본이 좌측이지만 확실하게)
 st.markdown(f"<h3 style='text-align: left;'>📅 {data['title']}</h3>", unsafe_allow_html=True)
 
 data['goal'] = st.text_input("이번 주 목표를 입력해주세요!", value=data['goal'], placeholder="예: 평일 저녁 쉐이크, 물 2L 마시기", key=f"goal_{current_week_id}")
@@ -241,7 +265,6 @@ for idx, (day_code, label, icon) in enumerate(days_info[:4]):
     day_data = data['content'][day_code]
     with cols[idx]:
         st.subheader(f"{icon} {label}")
-        # [핵심 수정] key에 current_week_id를 추가하여 주간이 바뀌면 입력창도 초기화됨
         day_data['weight'] = st.text_input("몸무게", value=day_data['weight'], key=f"w_{day_code}_{current_week_id}")
         day_data['bf'] = st.text_input("아침", value=day_data['bf'], key=f"b_{day_code}_{current_week_id}")
         day_data['lc'] = st.text_input("점심", value=day_data['lc'], key=f"l_{day_code}_{current_week_id}")
