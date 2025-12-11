@@ -63,7 +63,7 @@ def save_data(data):
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
-# --- 3. CSS 스타일 (극단적 심플함) ---
+# --- 3. CSS 스타일 (박스 제거 & 정렬 완벽화) ---
 st.markdown("""
 <style>
     :root { --primary: #6c5ce7; }
@@ -94,80 +94,68 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
-    /* [사이드바 타이틀 버튼 (심플)] */
-    .simple-title-btn button {
-        background: transparent !important;
+    /* [타이틀 버튼] - 투명화, 좌측 정렬, 테두리 없음 */
+    .invisible-btn button {
+        background-color: transparent !important;
         border: none !important;
+        box-shadow: none !important;
         padding: 0 !important;
         color: #333 !important;
         text-align: left !important;
         justify-content: flex-start !important;
         width: 100% !important;
         font-size: 15px !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
     }
-    .simple-title-btn button p {
+    .invisible-btn button:hover {
+        color: var(--primary) !important;
+    }
+    .invisible-btn button p {
         text-align: left !important;
         margin: 0 !important;
         padding: 0 !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    .simple-title-btn button:hover {
-        color: var(--primary) !important;
     }
 
-    /* [더보기(⋮) 버튼 완전 투명화] */
+    /* [더보기(Popover) 버튼] - V 아이콘 제거 & 투명화 */
     [data-testid="stPopover"] {
         border: none !important;
         background: transparent !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 30px;
-        height: 30px;
+        box-shadow: none !important;
     }
     [data-testid="stPopover"] > button {
         border: none !important;
         background: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        color: #b2bec3 !important;
+        color: #333 !important;
+        width: auto !important;
     }
-    /* V 아이콘 숨김 */
-    [data-testid="stPopover"] > button span[data-testid="stIcon"] { display: none !important; }
-    /* 점 3개 강제 생성 */
-    [data-testid="stPopover"] > button::after {
-        content: "⋮";
-        font-size: 24px;
-        font-weight: bold;
-        line-height: 1;
+    
+    /* [핵심] V자 화살표(chevron) 숨기기 */
+    [data-testid="stPopover"] > button span[data-testid="stIcon"] {
+        display: none !important;
     }
+    
+    /* 호버 시 배경만 살짝 */
     [data-testid="stPopover"] > button:hover {
-        color: var(--primary) !important;
         background-color: rgba(0,0,0,0.05) !important;
         border-radius: 50% !important;
+        color: var(--primary) !important;
     }
 
-    /* 팝오버 메뉴 */
+    /* 팝오버 내부 메뉴 */
     div[data-testid="stPopoverBody"] button {
         border: none !important;
         background: transparent !important;
         text-align: left !important;
         justify-content: flex-start !important;
         width: 100% !important;
-        padding: 10px !important;
     }
     div[data-testid="stPopoverBody"] button:hover {
         background-color: #f0eeff !important;
         color: var(--primary) !important;
     }
 
-    /* 메인 스타일 */
+    /* 메인 화면 스타일 */
     section[data-testid="stMain"] div[data-testid="stColumn"] {
         background-color: var(--secondary-background-color); padding: 15px; border-radius: 15px; border: 1px solid rgba(128, 128, 128, 0.1); box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
@@ -206,7 +194,7 @@ with st.sidebar:
 
     current_id = st.session_state.current_data['id'] if st.session_state.get('current_data') else None
 
-    # [리스트 출력 - 목표 제거하고 심플하게]
+    # [리스트 출력]
     for i, item in enumerate(st.session_state.history):
         is_active = (item['id'] == current_id)
         
@@ -224,21 +212,23 @@ with st.sidebar:
                 unsafe_allow_html=True
             )
 
+        # 큰 박스 (Container)
         with st.container(border=True):
-            # [9:1 비율] + [중앙 정렬]
-            c_content, c_more = st.columns([0.9, 0.1], vertical_alignment="center")
+            # [중요] 9:1 비율 + 수직 중앙 정렬 (vertical_alignment="center")
+            c_title, c_more = st.columns([0.9, 0.1], vertical_alignment="center")
             
-            # 1. 좌측: 제목 (목표 없음!)
-            with c_content:
-                st.markdown('<div class="simple-title-btn">', unsafe_allow_html=True)
+            # 1. 좌측: 날짜 타이틀 (테두리 없는 버튼)
+            with c_title:
+                st.markdown('<div class="invisible-btn">', unsafe_allow_html=True)
                 if st.button(item['title'], key=f"load_{i}", help="불러오기"):
                     st.session_state.current_data = item
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            # 2. 우측: 더보기 (점 3개)
+            # 2. 우측: 더보기 (점 3개 아이콘)
             with c_more:
-                popover = st.popover("", help=None) 
+                # :material/more_vert: 아이콘 사용, 라벨 없음 -> V 아이콘은 CSS로 숨김
+                popover = st.popover(":material/more_vert:", help=None)
                 with popover:
                     if st.button("📋 복사하기", key=f"copy_{i}"):
                         new_item = item.copy()
