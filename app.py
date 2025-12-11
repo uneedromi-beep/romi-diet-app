@@ -9,7 +9,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="로미의 다이어트 매니저", page_icon="📅")
 
-# --- 2. 날짜 자동 계산 함수 ---
+# --- 2. 유틸리티 함수 ---
 def get_weekly_title():
     today = datetime.date.today()
     start_of_week = today - datetime.timedelta(days=today.weekday())
@@ -19,27 +19,19 @@ def get_weekly_title():
     end_str = f"{end_of_week.strftime('%Y-%m-%d')}{weekdays[end_of_week.weekday()]}"
     return f"{start_str} ~ {end_str}"
 
-# --- 3. 구글 시트 연결 함수 ---
 @st.cache_resource
 def get_google_sheet():
     try:
         key_dict = st.secrets["service_account"]
-    except Exception:
-        st.error("🚨 Secrets 설정 오류")
-        return None
-
-    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
-    client = gspread.authorize(creds)
-    
-    try:
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
+        client = gspread.authorize(creds)
         sh = client.open("diet_db")
         return sh.sheet1
     except Exception as e:
-        st.error(f"🚨 연결 실패: {e}")
+        st.error(f"🚨 연결 실패. Secrets 설정을 확인해주세요.")
         return None
 
-# --- 4. 데이터 함수 ---
 def load_data():
     sheet = get_google_sheet()
     if sheet is None: return []
@@ -53,7 +45,7 @@ def load_data():
                 except json.JSONDecodeError:
                     continue
         return history
-    except Exception:
+    except:
         return []
 
 def save_data(data):
@@ -71,65 +63,79 @@ def save_data(data):
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
-# --- 5. CSS 스타일 (디자인 수정) ---
+# --- 3. CSS 스타일 (통합 및 최적화) ---
 st.markdown("""
 <style>
-    :root { --primary-purple: #6c5ce7; }
-    
-    /* 사이드바 너비 고정 */
+    /* [전역 변수] */
+    :root { --primary: #6c5ce7; --bg-light: #f8f7ff; }
+
+    /* [사이드바] 너비 고정 */
     section[data-testid="stSidebar"] { min-width: 350px !important; max-width: 350px !important; }
 
-    /* [수정 1] 새 주간 시작하기 버튼 - 컨테이너 중앙 정렬 */
-    div.new-week-btn-container {
+    /* -------------------------------------------------------
+       1. 새 주간 시작하기 버튼 (중앙 정렬 박스)
+    ------------------------------------------------------- */
+    div.new-week-wrapper {
         display: flex;
         justify-content: center;
-        padding: 0 10px; /* 좌우 약간의 여백 */
+        width: 100%;
         margin-bottom: 20px;
     }
-    /* 버튼 본체 */
-    div.new-week-btn-container button {
-        background-color: var(--primary-purple) !important;
+    div.new-week-wrapper button {
+        background-color: var(--primary) !important;
         color: white !important;
         border: 2px solid #4834d4 !important;
         border-radius: 12px !important;
+        width: 300px !important; /* 고정 너비로 중앙 정렬 유도 */
         padding: 0.8rem 0 !important;
         font-size: 16px !important;
-        font-weight: bold !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
-        width: 100% !important; /* 컨테이너 안에서 꽉 차게 */
+        font-weight: 700 !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
     }
-    div.new-week-btn-container button:hover {
-        transform: scale(1.02);
+    div.new-week-wrapper button:hover {
         background-color: #5b4cc4 !important;
+        transform: translateY(-2px);
     }
 
-    /* [수정 2] 사이드바 타이틀 버튼 - 박스 제거 & 좌측 정렬 */
-    .card-title-btn button {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        text-align: left !important;
-        justify-content: flex-start !important; /* Flexbox 좌측 정렬 */
-        color: #333 !important;
-        width: 100% !important;
-        height: auto !important;
+    /* -------------------------------------------------------
+       2. 사이드바 리스트 카드 (박스 속 박스 제거)
+    ------------------------------------------------------- */
+    /* Streamlit 기본 컨테이너 패딩 제거 */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+        gap: 0.5rem;
     }
     
-    /* 버튼 내부 텍스트 강제 좌측 정렬 */
-    .card-title-btn button p {
-        text-align: left !important;
-        font-weight: 700 !important;
-        font-size: 15px !important;
-        margin: 0 !important;
+    /* 타이틀 버튼 스타일 (투명화 + 좌측 정렬) */
+    .list-title-btn button {
+        background: transparent !important;
+        border: none !important;
         padding: 0 !important;
+        color: #333 !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
         line-height: 1.4 !important;
-        white-space: normal !important; /* 줄바꿈 허용 */
+        box-shadow: none !important;
     }
-    .card-title-btn button:hover p { color: var(--primary-purple) !important; }
+    .list-title-btn button p {
+        text-align: left !important;
+        white-space: normal !important; /* 줄바꿈 허용 */
+        margin: 0 !important;
+    }
+    .list-title-btn button:hover {
+        color: var(--primary) !important;
+    }
 
-    /* [수정 3] 더보기(Popover) 버튼 - 테두리/화살표 제거 */
-    /* 버튼 껍데기 투명화 */
+    /* -------------------------------------------------------
+       3. 더보기(⋮) 버튼 (완전 투명화)
+    ------------------------------------------------------- */
+    /* 껍데기 제거 */
+    [data-testid="stPopover"] {
+        border: none !important;
+        background: transparent !important;
+    }
     [data-testid="stPopover"] > button {
         border: none !important;
         background: transparent !important;
@@ -137,66 +143,62 @@ st.markdown("""
         padding: 0 !important;
         width: 30px !important;
         height: 30px !important;
-        display: flex;
-        justify-content: center;
-        align-items: center;
         color: #b2bec3 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    
-    /* [중요] 드롭다운 화살표(V) 숨기기 */
+    /* 기존 화살표 아이콘 숨김 */
     [data-testid="stPopover"] > button span[data-testid="stIcon"] {
         display: none !important;
     }
-    
-    /* 점 3개 아이콘 (Material Icon) 스타일링 */
-    [data-testid="stPopover"] > button span {
-        font-size: 24px !important; /* 크기 키움 */
+    /* CSS로 점 3개 아이콘 생성 */
+    [data-testid="stPopover"] > button::after {
+        content: "⋮";
+        font-size: 24px;
+        font-weight: bold;
+        line-height: 1;
     }
-
     /* 호버 효과 */
     [data-testid="stPopover"] > button:hover {
+        color: var(--primary) !important;
         background-color: rgba(0,0,0,0.05) !important;
         border-radius: 50% !important;
-        color: var(--primary-purple) !important;
     }
 
-    /* 팝오버 내부 메뉴 버튼 */
-    div[data-testid="stPopoverBody"] button {
-        border: none !important;
-        background: transparent !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
-        width: 100% !important;
-        padding: 10px !important;
-    }
-    div[data-testid="stPopoverBody"] button:hover {
-        background-color: #f0eeff !important;
-        color: var(--primary-purple) !important;
-    }
-
-    /* 메인 화면 및 기타 스타일 */
+    /* -------------------------------------------------------
+       4. 기타 메인 UI
+    ------------------------------------------------------- */
+    /* 메인 카드 */
     section[data-testid="stMain"] div[data-testid="stColumn"] {
-        background-color: var(--secondary-background-color); padding: 15px; border-radius: 15px; border: 1px solid rgba(128, 128, 128, 0.1); box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        background-color: var(--secondary-background-color);
+        padding: 15px;
+        border-radius: 15px;
+        border: 1px solid rgba(128, 128, 128, 0.1);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
+    /* 평가/저장 버튼 정렬 */
     div[data-testid="stSegmentedControl"] { display: flex; justify-content: center !important; }
     div[data-testid="stSegmentedControl"] > div { width: 100%; justify-content: center; }
     
-    .save-btn-container { display: flex; justify-content: center; margin-top: 30px; margin-bottom: 50px; }
-    .save-btn-container .stButton button {
-        background-color: var(--primary-purple) !important; color: white !important; font-size: 18px !important; font-weight: bold !important; padding: 12px 40px !important; border-radius: 50px !important; border: none !important; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3) !important;
+    .save-btn-wrapper { display: flex; justify-content: center; margin-top: 30px; margin-bottom: 50px; }
+    .save-btn-wrapper .stButton button {
+        background-color: var(--primary) !important; color: white !important; font-size: 18px !important; font-weight: bold !important; padding: 12px 40px !important; border-radius: 50px !important; border: none !important; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3) !important;
     }
+    
+    /* 입력창 배경 투명 */
     .stTextInput input { background-color: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 6. 사이드바 ---
+# --- 4. 사이드바 UI ---
 with st.sidebar:
     st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 Romi's History</h2>", unsafe_allow_html=True)
     st.write("")
 
-    # [수정] 새 주간 시작하기 버튼 (중앙 정렬 컨테이너 적용)
-    st.markdown('<div class="new-week-btn-container">', unsafe_allow_html=True)
-    if st.button("➕  새 주간 시작하기", key="new_week", use_container_width=True):
+    # [새 주간 시작하기] - 중앙 정렬 Wrapper 사용
+    st.markdown('<div class="new-week-wrapper">', unsafe_allow_html=True)
+    if st.button("➕  새 주간 시작하기", key="new_week"):
         new_data = {
             "id": str(datetime.datetime.now().timestamp()), 
             "title": get_weekly_title(),
@@ -213,11 +215,11 @@ with st.sidebar:
 
     current_id = st.session_state.current_data['id'] if st.session_state.get('current_data') else None
 
-    # 리스트 출력
+    # [리스트 출력]
     for i, item in enumerate(st.session_state.history):
         is_active = (item['id'] == current_id)
         
-        # 카드 컨테이너 (Active 상태면 보라색 테두리)
+        # 카드 컨테이너 (Active일 때만 색상 변경)
         with st.container(border=True):
             if is_active:
                 st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { border: 2px solid #6c5ce7 !important; background-color: #f8f7ff !important; }</style>""", unsafe_allow_html=True)
@@ -225,24 +227,21 @@ with st.sidebar:
             # 레이아웃: 좌측(내용 85%) : 우측(더보기 15%)
             c_content, c_more = st.columns([0.85, 0.15])
             
-            # 1. 좌측: 제목 버튼 (박스 없음, 좌측 정렬)
+            # 1. 좌측: 제목 (버튼처럼 동작하지만 텍스트처럼 보임)
             with c_content:
-                st.markdown('<div class="card-title-btn">', unsafe_allow_html=True)
-                # 제목 클릭 시 로드
-                if st.button(item['title'], key=f"load_{i}", help="클릭하여 불러오기"):
+                st.markdown('<div class="list-title-btn">', unsafe_allow_html=True)
+                if st.button(item['title'], key=f"load_{i}", help="불러오기"):
                     st.session_state.current_data = item
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # 목표 캡션 (좌측 정렬)
+                # 목표 (캡션)
                 if item.get('goal'):
                     st.caption(f"{item['goal'][:25]}..." if len(item['goal'])>25 else item['goal'])
 
-            # 2. 우측: 더보기(...) 팝오버 (아이콘만 깔끔하게)
+            # 2. 우측: 더보기 (Popover) - 아이콘 없이 점 3개만 표시됨
             with c_more:
-                # 라벨에 :material/more_vert: 아이콘 사용, 도움말 없음
-                popover = st.popover(":material/more_vert:", help=None)
-                
+                popover = st.popover("", help=None) # 라벨 없음
                 with popover:
                     if st.button("📋 복사하기", key=f"copy_{i}"):
                         new_item = item.copy()
@@ -263,7 +262,7 @@ with st.sidebar:
                         save_data(st.session_state.history)
                         st.rerun()
 
-# --- 7. 메인 화면 ---
+# --- 5. 메인 UI ---
 if "current_data" not in st.session_state or st.session_state.current_data is None:
     st.info("👈 왼쪽 사이드바에서 '+ 새 주간 시작하기'를 눌러주세요!")
     st.stop()
@@ -274,7 +273,6 @@ current_week_id = data['id']
 days_info = [("Mon", "월요일", "🐻"), ("Tue", "화요일", "🔥"), ("Wed", "수요일", "🥗"), ("Thu", "목요일", "🥩"), ("Fri", "금요일", "🍷"), ("Sat", "토요일", "🛍️"), ("Sun", "일요일", "🛁")]
 
 st.title("🏃‍♀️ 로미의 유지어터 매니저")
-
 st.markdown(f"<h3 style='text-align: left;'>📅 {data['title']}</h3>", unsafe_allow_html=True)
 
 data['goal'] = st.text_input("이번 주 목표를 입력해주세요!", value=data['goal'], placeholder="예: 평일 저녁 쉐이크, 물 2L 마시기", key=f"goal_{current_week_id}")
@@ -310,13 +308,12 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
 
 st.divider()
 
-st.markdown('<div class="save-btn-container">', unsafe_allow_html=True)
+st.markdown('<div class="save-btn-wrapper">', unsafe_allow_html=True)
 if st.button("💾  저장하기", key="save_main"):
     existing_ids = [item['id'] for item in st.session_state.history]
     if data['id'] in existing_ids:
         index = existing_ids.index(data['id'])
         st.session_state.history[index] = data
-    
     save_data(st.session_state.history)
     st.success("저장 완료! 로미님 오늘도 파이팅! 🔥")
     time.sleep(1)
