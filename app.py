@@ -137,10 +137,8 @@ st.markdown("""
         display: flex;
         justify-content: center;
         align-items: center;
-    }
-    /* 드롭다운 화살표(chevron) 숨기기 - Streamlit 구조상 투명하게 처리 */
-    [data-testid="stPopover"] > button span[data-testid="stIcon"] {
-        display: none !important; 
+        outline: none !important;         /* 포커스 테두리 제거 */
+        box-shadow: none !important;      /* 혹시 남아있는 그림자 제거 */
     }
     /* 점 3개 아이콘 강제 노출 */
     [data-testid="stPopover"] > button::after {
@@ -241,7 +239,7 @@ with st.sidebar:
                 popover = st.popover("", help="설정")
                 
                 with popover:
-                    if st.button("📋 복사하기", key=f"copy_{i}"):
+                    if st.button("복사하기", key=f"copy_{i}"):
                         new_item = item.copy()
                         new_item['id'] = str(datetime.datetime.now().timestamp())
                         new_item['title'] = get_weekly_title() + " (복사됨)"
@@ -253,7 +251,7 @@ with st.sidebar:
                         st.session_state.current_data = new_item
                         st.rerun()
                     
-                    if st.button("🗑️ 삭제하기", key=f"del_{i}"):
+                    if st.button("삭제하기", key=f"del_{i}"):
                         del st.session_state.history[i]
                         if is_active:
                             st.session_state.current_data = None
@@ -319,3 +317,4 @@ if st.button("💾  저장하기", key="save_main"):
     time.sleep(1)
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
+
