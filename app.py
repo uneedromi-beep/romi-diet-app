@@ -9,7 +9,7 @@ from google.oauth2.service_account import Credentials
 # --- 1. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="로미의 다이어트 매니저", page_icon="📅")
 
-# --- 2. [NEW] 날짜 자동 계산 함수 ---
+# --- 2. 날짜 자동 계산 함수 ---
 def get_weekly_title():
     today = datetime.date.today()
     start_of_week = today - datetime.timedelta(days=today.weekday())
@@ -71,7 +71,7 @@ def save_data(data):
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
-# --- 5. CSS 스타일 ---
+# --- 5. CSS 스타일 (디자인 수정) ---
 st.markdown("""
 <style>
     :root { --primary-purple: #6c5ce7; }
@@ -79,48 +79,48 @@ st.markdown("""
     /* 사이드바 너비 고정 */
     section[data-testid="stSidebar"] { min-width: 350px !important; max-width: 350px !important; }
 
-    /* [새 주간 시작하기 버튼 꾸미기] */
-    /* div.new-week-btn 안에 있는 버튼을 타겟팅 */
+    /* [수정] 새 주간 시작하기 버튼 - 확실한 테두리와 박스 형태 */
     div.new-week-btn button {
         background-color: var(--primary-purple) !important;
         color: white !important;
-        border: 1px solid white !important;
-        border-radius: 10px !important;
+        border: 2px solid #4834d4 !important; /* 진한 보라색 테두리 추가 */
+        border-radius: 12px !important;
         padding: 15px 10px !important;
         font-size: 16px !important;
         font-weight: bold !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important; /* 그림자 강화 */
         transition: transform 0.1s;
+        width: 100%;
     }
     div.new-week-btn button:hover {
         transform: scale(1.02);
         background-color: #5b4cc4 !important;
-    }
-    div.new-week-btn button p {
-        font-size: 16px !important;
+        border-color: white !important;
     }
 
-    /* 사이드바 안의 일반 버튼들 초기화 */
-    [data-testid="stSidebar"] .stButton:not(.new-week-btn button) button {
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-    }
-
-    /* 타이틀 버튼 스타일 */
+    /* [수정] 사이드바 타이틀 버튼 좌측 정렬 강제 */
     .title-btn button {
         text-align: left !important;
+        justify-content: flex-start !important; /* 좌측 정렬 핵심 */
         font-weight: bold !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
         color: #333 !important;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         display: block;
         width: 100%;
+        padding-left: 0 !important;
     }
     .title-btn button:hover { color: var(--primary-purple) !important; }
+
+    /* 일반 버튼 초기화 */
+    [data-testid="stSidebar"] .stButton:not(.new-week-btn button) button {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
 
     /* 아이콘 버튼 스타일 */
     .icon-action-btn button {
@@ -136,10 +136,13 @@ st.markdown("""
     /* 평가/저장 버튼 정렬 */
     div[data-testid="stSegmentedControl"] { display: flex; justify-content: center !important; }
     div[data-testid="stSegmentedControl"] > div { width: 100%; justify-content: center; }
+    
     .save-btn-container { display: flex; justify-content: center; margin-top: 30px; margin-bottom: 50px; }
     .save-btn-container .stButton button {
         background-color: var(--primary-purple) !important; color: white !important; font-size: 18px !important; font-weight: bold !important; padding: 12px 40px !important; border-radius: 50px !important; border: none !important; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3) !important;
     }
+    
+    /* 입력창 투명 */
     .stTextInput input { background-color: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -149,36 +152,30 @@ with st.sidebar:
     st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 Romi's History</h2>", unsafe_allow_html=True)
     st.write("")
 
-    # [수정됨] 새 주간 시작하기 로직 변경 (누르자마자 생성 및 저장)
+    # [수정] 새 주간 시작하기 버튼
     st.markdown('<div class="new-week-btn">', unsafe_allow_html=True)
     if st.button("➕  새 주간 시작하기", key="new_week", use_container_width=True):
-        # 1. 새로운 데이터 객체 생성
         new_data = {
-            "id": str(datetime.datetime.now().timestamp()),
+            "id": str(datetime.datetime.now().timestamp()), # 고유 ID 생성
             "title": get_weekly_title(),
             "goal": "",
+            # 내용 초기화
             "content": {day: {"weight": "", "bf": "", "lc": "", "sn": "", "dn": "", "eval": None} for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]}
         }
-        # 2. 히스토리 맨 앞에 추가
         st.session_state.history.insert(0, new_data)
-        # 3. 현재 보고 있는 데이터로 설정
         st.session_state.current_data = new_data
-        # 4. 즉시 저장
         save_data(st.session_state.history)
-        # 5. 새로고침 (즉시 사이드바에 반영됨)
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.write("") 
 
-    # 현재 선택된 데이터 ID (없으면 None)
     current_id = st.session_state.current_data['id'] if st.session_state.get('current_data') else None
 
     # 리스트 출력
     for i, item in enumerate(st.session_state.history):
         is_active = (item['id'] == current_id)
         
-        # 확실한 테두리 박스 (Active 상태면 보라색 테두리)
         with st.container(border=True):
             if is_active:
                 st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { border-color: #6c5ce7 !important; background-color: #f0eeff !important; }</style>""", unsafe_allow_html=True)
@@ -205,7 +202,7 @@ with st.sidebar:
                         new_item['content'][day]['eval'] = None
                     st.session_state.history.insert(0, new_item)
                     save_data(st.session_state.history)
-                    st.session_state.current_data = new_item # 복사된 항목으로 바로 이동
+                    st.session_state.current_data = new_item
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -213,7 +210,6 @@ with st.sidebar:
                 st.markdown('<div class="icon-action-btn">', unsafe_allow_html=True)
                 if st.button("✕", key=f"del_{i}", help="삭제"):
                     del st.session_state.history[i]
-                    # 삭제 후 현재 데이터가 삭제된 데이터라면 초기화
                     if is_active:
                         st.session_state.current_data = None
                     save_data(st.session_state.history)
@@ -222,16 +218,21 @@ with st.sidebar:
 
 # --- 7. 메인 화면 ---
 if "current_data" not in st.session_state or st.session_state.current_data is None:
-    # 데이터가 하나도 없거나 선택 안 된 경우 -> 안내 메시지 표시
     st.info("👈 왼쪽에서 '새 주간 시작하기'를 눌러 기록을 시작해보세요!")
-    st.stop() # 아래 코드 실행 안 함
+    st.stop()
 
 data = st.session_state.current_data
+# [중요] 키 값에 ID를 포함시켜서 데이터가 바뀌면 입력창도 강제로 새로고침(초기화)되게 함
+current_week_id = data['id'] 
+
 days_info = [("Mon", "월요일", "🐻"), ("Tue", "화요일", "🔥"), ("Wed", "수요일", "🥗"), ("Thu", "목요일", "🥩"), ("Fri", "금요일", "🍷"), ("Sat", "토요일", "🛍️"), ("Sun", "일요일", "🛁")]
 
 st.title("🏃‍♀️ 로미의 유지어터 매니저")
-st.subheader(f"📅 {data['title']}") 
-data['goal'] = st.text_input("이번 주 목표를 입력해주세요!", value=data['goal'], placeholder="예: 평일 저녁 쉐이크, 물 2L 마시기")
+
+# [수정] 타이틀 좌측 정렬 (st.subheader는 기본이 좌측이지만 확실하게)
+st.markdown(f"<h3 style='text-align: left;'>📅 {data['title']}</h3>", unsafe_allow_html=True)
+
+data['goal'] = st.text_input("이번 주 목표를 입력해주세요!", value=data['goal'], placeholder="예: 평일 저녁 쉐이크, 물 2L 마시기", key=f"goal_{current_week_id}")
 
 st.divider()
 
@@ -240,13 +241,14 @@ for idx, (day_code, label, icon) in enumerate(days_info[:4]):
     day_data = data['content'][day_code]
     with cols[idx]:
         st.subheader(f"{icon} {label}")
-        day_data['weight'] = st.text_input("몸무게", value=day_data['weight'], key=f"w_{day_code}")
-        day_data['bf'] = st.text_input("아침", value=day_data['bf'], key=f"b_{day_code}")
-        day_data['lc'] = st.text_input("점심", value=day_data['lc'], key=f"l_{day_code}")
-        day_data['sn'] = st.text_input("간식", value=day_data['sn'], key=f"s_{day_code}")
-        day_data['dn'] = st.text_input("저녁", value=day_data['dn'], key=f"d_{day_code}")
+        # [핵심 수정] key에 current_week_id를 추가하여 주간이 바뀌면 입력창도 초기화됨
+        day_data['weight'] = st.text_input("몸무게", value=day_data['weight'], key=f"w_{day_code}_{current_week_id}")
+        day_data['bf'] = st.text_input("아침", value=day_data['bf'], key=f"b_{day_code}_{current_week_id}")
+        day_data['lc'] = st.text_input("점심", value=day_data['lc'], key=f"l_{day_code}_{current_week_id}")
+        day_data['sn'] = st.text_input("간식", value=day_data['sn'], key=f"s_{day_code}_{current_week_id}")
+        day_data['dn'] = st.text_input("저녁", value=day_data['dn'], key=f"d_{day_code}_{current_week_id}")
         eval_val = day_data['eval']
-        day_data['eval'] = st.segmented_control("평가", ["😍", "🙂", "😅"], selection_mode="single", default=eval_val if eval_val in ["😍", "🙂", "😅"] else None, key=f"e_{day_code}", label_visibility="collapsed")
+        day_data['eval'] = st.segmented_control("평가", ["😍", "🙂", "😅"], selection_mode="single", default=eval_val if eval_val in ["😍", "🙂", "😅"] else None, key=f"e_{day_code}_{current_week_id}", label_visibility="collapsed")
 
 st.write("")
 cols_bottom = st.columns(3)
@@ -254,19 +256,18 @@ for idx, (day_code, label, icon) in enumerate(days_info[4:]):
     day_data = data['content'][day_code]
     with cols_bottom[idx]:
         st.subheader(f"{icon} {label}")
-        day_data['weight'] = st.text_input("몸무게", value=day_data['weight'], key=f"w_{day_code}")
-        day_data['bf'] = st.text_input("아침", value=day_data['bf'], key=f"b_{day_code}")
-        day_data['lc'] = st.text_input("점심", value=day_data['lc'], key=f"l_{day_code}")
-        day_data['sn'] = st.text_input("간식", value=day_data['sn'], key=f"s_{day_code}")
-        day_data['dn'] = st.text_input("저녁", value=day_data['dn'], key=f"d_{day_code}")
+        day_data['weight'] = st.text_input("몸무게", value=day_data['weight'], key=f"w_{day_code}_{current_week_id}")
+        day_data['bf'] = st.text_input("아침", value=day_data['bf'], key=f"b_{day_code}_{current_week_id}")
+        day_data['lc'] = st.text_input("점심", value=day_data['lc'], key=f"l_{day_code}_{current_week_id}")
+        day_data['sn'] = st.text_input("간식", value=day_data['sn'], key=f"s_{day_code}_{current_week_id}")
+        day_data['dn'] = st.text_input("저녁", value=day_data['dn'], key=f"d_{day_code}_{current_week_id}")
         eval_val = day_data['eval']
-        day_data['eval'] = st.segmented_control("평가", ["😍", "🙂", "😅"], selection_mode="single", default=eval_val if eval_val in ["😍", "🙂", "😅"] else None, key=f"e_{day_code}", label_visibility="collapsed")
+        day_data['eval'] = st.segmented_control("평가", ["😍", "🙂", "😅"], selection_mode="single", default=eval_val if eval_val in ["😍", "🙂", "😅"] else None, key=f"e_{day_code}_{current_week_id}", label_visibility="collapsed")
 
 st.divider()
 
 st.markdown('<div class="save-btn-container">', unsafe_allow_html=True)
 if st.button("💾  저장하기", key="save_main"):
-    # 현재 수정 중인 데이터를 히스토리에서 찾아서 업데이트
     existing_ids = [item['id'] for item in st.session_state.history]
     if data['id'] in existing_ids:
         index = existing_ids.index(data['id'])
