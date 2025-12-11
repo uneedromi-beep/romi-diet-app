@@ -186,7 +186,7 @@ st.markdown("""
 
 # --- 6. 사이드바 ---
 with st.sidebar:
-    st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 Romi's History</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 로미의 유지어터 매니저</h2>", unsafe_allow_html=True)
     st.write("")
 
     # [수정] 새 주간 시작하기 버튼 (div로 감싸서 중앙 정렬 & 너비 95%)
@@ -268,9 +268,7 @@ current_week_id = data['id']
 
 days_info = [("Mon", "월요일", "🐻"), ("Tue", "화요일", "🔥"), ("Wed", "수요일", "🥗"), ("Thu", "목요일", "🥩"), ("Fri", "금요일", "🍷"), ("Sat", "토요일", "🛍️"), ("Sun", "일요일", "🛁")]
 
-st.title("🏃‍♀️ 로미의 유지어터 매니저")
-
-st.markdown(f"<h3 style='text-align: left;'>📅 {data['title']}</h3>", unsafe_allow_html=True)
+st.title(f"<h1 style='text-align: left;'>📅 {data['title']}</h3>", unsafe_allow_html=True)
 
 data['goal'] = st.text_input("이번 주 목표를 입력해주세요!", value=data['goal'], placeholder="예: 평일 저녁 쉐이크, 물 2L 마시기", key=f"goal_{current_week_id}")
 
@@ -317,4 +315,5 @@ if st.button("💾  저장하기", key="save_main"):
     time.sleep(1)
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
+
 
