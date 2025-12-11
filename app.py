@@ -63,16 +63,18 @@ def save_data(data):
 if "history" not in st.session_state:
     st.session_state.history = load_data()
 
-# --- 3. CSS 스타일 (정렬 및 디자인 최적화) ---
+# --- 3. CSS 스타일 (충돌 제거 및 최적화) ---
 st.markdown("""
 <style>
     /* 전역 변수 */
-    :root { --primary: #6c5ce7; }
+    :root { --primary: #6c5ce7; --bg-selected: #f3f0ff; }
 
-    /* [사이드바 너비 고정] */
+    /* [사이드바] 너비 고정 */
     section[data-testid="stSidebar"] { min-width: 350px !important; max-width: 350px !important; }
 
-    /* [1] 새 주간 시작하기 버튼 (중앙 정렬) */
+    /* -------------------------------------------------------
+       1. 새 주간 시작하기 버튼 (중앙 정렬 & 박스 스타일)
+    ------------------------------------------------------- */
     div.new-week-wrapper {
         display: flex;
         justify-content: center;
@@ -82,9 +84,9 @@ st.markdown("""
     div.new-week-wrapper button {
         background-color: var(--primary) !important;
         color: white !important;
-        border: 2px solid #4834d4 !important;
+        border: 1px solid var(--primary) !important;
         border-radius: 12px !important;
-        width: 300px !important;
+        width: 95% !important; /* 사이드바 꽉 차게 */
         padding: 0.8rem 0 !important;
         font-size: 16px !important;
         font-weight: 700 !important;
@@ -95,64 +97,70 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
-    /* [2] 사이드바 리스트 타이틀 버튼 */
+    /* -------------------------------------------------------
+       2. 사이드바 리스트 타이틀 (투명화 + 좌측 정렬)
+    ------------------------------------------------------- */
     .list-title-btn button {
         background: transparent !important;
         border: none !important;
         padding: 0 !important;
         color: #333 !important;
         text-align: left !important;
-        justify-content: flex-start !important; /* 좌측 정렬 */
+        justify-content: flex-start !important; /* 좌측 정렬 핵심 */
         width: 100% !important;
         font-size: 15px !important;
         font-weight: 600 !important;
-        line-height: 1.2 !important; /* 줄간격 좁힘 */
+        line-height: 1.4 !important;
         box-shadow: none !important;
         height: auto !important;
         min-height: 0px !important;
     }
     .list-title-btn button p {
         text-align: left !important;
-        white-space: normal !important;
+        white-space: normal !important; /* 줄바꿈 허용 */
         margin: 0 !important;
+        padding: 0 !important;
     }
-    .list-title-btn button:hover { color: var(--primary) !important; }
+    .list-title-btn button:hover {
+        color: var(--primary) !important;
+    }
 
-    /* [3] 더보기(⋮) 버튼 - 완벽 투명화 & 중앙 정렬 */
+    /* -------------------------------------------------------
+       3. 더보기(⋮) 버튼 (V 아이콘 제거 & 완벽 투명화)
+    ------------------------------------------------------- */
+    /* 팝오버 컨테이너 */
     [data-testid="stPopover"] {
+        border: none !important;
+        background: transparent !important;
         display: flex;
-        justify-content: center;
         align-items: center;
-        width: 100%;
-        height: 100%;
+        justify-content: center;
     }
+    
+    /* 버튼 본체 투명화 */
     [data-testid="stPopover"] > button {
         border: none !important;
         background: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
-        margin: 0 !important;
         width: 30px !important;
         height: 30px !important;
         min-height: 0px !important;
         color: #b2bec3 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important; /* 아이콘 박스 내 중앙 정렬 */
     }
-    
-    /* 기본 화살표(chevron) 숨기기 */
+
+    /* [핵심] 기본 화살표(V) 아이콘 숨기기 */
     [data-testid="stPopover"] > button span[data-testid="stIcon"] {
         display: none !important;
     }
     
-    /* 점 3개 아이콘 생성 */
+    /* [핵심] 점 3개(⋮) 아이콘 생성 */
     [data-testid="stPopover"] > button::after {
         content: "⋮";
-        font-size: 22px;
+        font-size: 24px;
         font-weight: bold;
         line-height: 1;
-        margin-top: -5px; /* 미세한 높이 조정 */
+        display: block;
     }
     
     /* 호버 효과 */
@@ -162,7 +170,7 @@ st.markdown("""
         border-radius: 50% !important;
     }
 
-    /* 팝오버 메뉴 내부 */
+    /* 팝오버 내부 메뉴 버튼 */
     div[data-testid="stPopoverBody"] button {
         border: none !important;
         background: transparent !important;
@@ -176,16 +184,26 @@ st.markdown("""
         color: var(--primary) !important;
     }
 
-    /* 메인 화면 카드 및 기타 스타일 */
+    /* -------------------------------------------------------
+       4. 선택된 카드 하이라이트 (보라색 테두리)
+    ------------------------------------------------------- */
+    /* Streamlit에서는 특정 컨테이너에 CSS 클래스를 줄 수 없으므로,
+       Python 로직에서 Active일 때만 특별한 스타일을 주입하는 방식을 사용합니다.
+       (아래 Python 코드의 active_style 참조)
+    */
+
+    /* 메인 화면 및 기타 스타일 */
     section[data-testid="stMain"] div[data-testid="stColumn"] {
         background-color: var(--secondary-background-color); padding: 15px; border-radius: 15px; border: 1px solid rgba(128, 128, 128, 0.1); box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
     div[data-testid="stSegmentedControl"] { display: flex; justify-content: center !important; }
     div[data-testid="stSegmentedControl"] > div { width: 100%; justify-content: center; }
+    
     .save-btn-wrapper { display: flex; justify-content: center; margin-top: 30px; margin-bottom: 50px; }
     .save-btn-wrapper .stButton button {
         background-color: var(--primary) !important; color: white !important; font-size: 18px !important; font-weight: bold !important; padding: 12px 40px !important; border-radius: 50px !important; border: none !important; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3) !important;
     }
+    
     .stTextInput input { background-color: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -195,7 +213,7 @@ with st.sidebar:
     st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 Romi's History</h2>", unsafe_allow_html=True)
     st.write("")
 
-    # [새 주간 시작하기]
+    # [새 주간 시작하기] - 중앙 정렬 Wrapper 사용
     st.markdown('<div class="new-week-wrapper">', unsafe_allow_html=True)
     if st.button("➕  새 주간 시작하기", key="new_week"):
         new_data = {
@@ -218,12 +236,26 @@ with st.sidebar:
     for i, item in enumerate(st.session_state.history):
         is_active = (item['id'] == current_id)
         
-        # 카드 컨테이너
+        # [핵심] 선택된 카드 하이라이트 처리
+        # Active 상태일 때만 적용되는 임시 스타일 블록을 생성
+        if is_active:
+            # 현재 컨테이너에 보라색 테두리와 배경색 적용
+            # (Streamlit의 data-testid="stVerticalBlock" 중첩 구조를 타겟팅)
+            st.markdown(
+                """
+                <style>
+                div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+                    border: 2px solid #6c5ce7 !important;
+                    background-color: #f3f0ff !important;
+                }
+                </style>
+                """, 
+                unsafe_allow_html=True
+            )
+
+        # 카드 컨테이너 (기본 테두리 있음)
         with st.container(border=True):
-            if is_active:
-                st.markdown("""<style>div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { border: 2px solid #6c5ce7 !important; background-color: #f8f7ff !important; }</style>""", unsafe_allow_html=True)
-            
-            # [중요] vertical_alignment="center"를 사용하여 타이틀과 버튼의 높이(중앙선)를 강제로 맞춤
+            # [중요] vertical_alignment="center" -> 타이틀과 버튼의 높이(중앙선)를 완벽하게 맞춤
             c_content, c_more = st.columns([0.88, 0.12], vertical_alignment="center")
             
             # 1. 좌측: 제목 (버튼)
@@ -234,14 +266,13 @@ with st.sidebar:
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # 목표 (캡션)
+                # 목표 (캡션) - 버튼 아래에 위치
                 if item.get('goal'):
                     st.caption(f"{item['goal'][:25]}..." if len(item['goal'])>25 else item['goal'])
 
-            # 2. 우측: 더보기 (Popover)
+            # 2. 우측: 더보기 (Popover) - V 아이콘 없고 점 3개만 있음
             with c_more:
-                # 텍스트 라벨 없이 팝오버 생성 (CSS로 아이콘 처리)
-                popover = st.popover("", help=None) 
+                popover = st.popover("", help=None) # 라벨 없음 -> CSS로 점 3개 넣음
                 with popover:
                     if st.button("📋 복사하기", key=f"copy_{i}"):
                         new_item = item.copy()
