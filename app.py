@@ -137,8 +137,10 @@ st.markdown("""
         display: flex;
         justify-content: center;
         align-items: center;
-        outline: none !important;         /* 포커스 테두리 제거 */
-        box-shadow: none !important;      /* 혹시 남아있는 그림자 제거 */
+    }
+    /* 드롭다운 화살표(chevron) 숨기기 - Streamlit 구조상 투명하게 처리 */
+    [data-testid="stPopover"] > button span[data-testid="stIcon"] {
+        display: none !important; 
     }
     /* 점 3개 아이콘 강제 노출 */
     [data-testid="stPopover"] > button::after {
@@ -186,7 +188,7 @@ st.markdown("""
 
 # --- 6. 사이드바 ---
 with st.sidebar:
-    st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 로미의 유지어터 매니저</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #6c5ce7;'>📅 Romi's History</h2>", unsafe_allow_html=True)
     st.write("")
 
     # [수정] 새 주간 시작하기 버튼 (div로 감싸서 중앙 정렬 & 너비 95%)
@@ -239,7 +241,7 @@ with st.sidebar:
                 popover = st.popover("", help="설정")
                 
                 with popover:
-                    if st.button("복사하기", key=f"copy_{i}"):
+                    if st.button("📋 복사하기", key=f"copy_{i}"):
                         new_item = item.copy()
                         new_item['id'] = str(datetime.datetime.now().timestamp())
                         new_item['title'] = get_weekly_title() + " (복사됨)"
@@ -251,7 +253,7 @@ with st.sidebar:
                         st.session_state.current_data = new_item
                         st.rerun()
                     
-                    if st.button("삭제하기", key=f"del_{i}"):
+                    if st.button("🗑️ 삭제하기", key=f"del_{i}"):
                         del st.session_state.history[i]
                         if is_active:
                             st.session_state.current_data = None
@@ -268,7 +270,9 @@ current_week_id = data['id']
 
 days_info = [("Mon", "월요일", "🐻"), ("Tue", "화요일", "🔥"), ("Wed", "수요일", "🥗"), ("Thu", "목요일", "🥩"), ("Fri", "금요일", "🍷"), ("Sat", "토요일", "🛍️"), ("Sun", "일요일", "🛁")]
 
-st.title(f"<h1 style='text-align: left;'>📅 {data['title']}</h3>", unsafe_allow_html=True)
+st.title("🏃‍♀️ 로미의 유지어터 매니저")
+
+st.markdown(f"<h3 style='text-align: left;'>📅 {data['title']}</h3>", unsafe_allow_html=True)
 
 data['goal'] = st.text_input("이번 주 목표를 입력해주세요!", value=data['goal'], placeholder="예: 평일 저녁 쉐이크, 물 2L 마시기", key=f"goal_{current_week_id}")
 
@@ -315,5 +319,3 @@ if st.button("💾  저장하기", key="save_main"):
     time.sleep(1)
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
-
-
